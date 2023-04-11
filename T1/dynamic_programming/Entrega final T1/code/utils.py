@@ -47,3 +47,66 @@ def display_policy(world_grid, reward_grid, policy):
     fig.tight_layout()
 
     plt.savefig('policy.pdf')
+
+
+### New auxiliar functions ####
+
+# Función para sumar arreglos (x,y)
+def sum_array(arreglo1, arreglo2):
+    resultado = ()
+    for elemento1, elemento2 in zip(arreglo1, arreglo2):
+        suma = elemento1 + elemento2
+        resultado += (suma,)
+    return resultado
+
+# Función para definir el siguiente estado dado la acción
+def new_state(initial_state,action,reward_grid):
+
+     # 0: subir, 1: bajar
+    if (action==0) or (action==1):
+    
+        # Según la acción se define el delta state que permite obtener el nuevo potencial estado
+        delta_state=(-1,0) if action==0 else (1,0)
+
+        # Se obtiene el nuevo potencial estado mediante suma vectorial
+        potential_new_state=sum_array(initial_state, delta_state)
+
+    # 2: derecha,3: izquierda
+    if (action==2) or (action==3):
+
+        # Según la acción se define el delta state que permite obtener el nuevo potencial estado
+        delta_state=(0,1) if  action==2  else  (0,-1)
+
+        # Se obtiene el nuevo potencial estado mediante suma vectorial 
+        potential_new_state=sum_array(initial_state, delta_state)
+
+    # Permanecemos en el estado inicial si es que no se puede recorrer dicho estado sino, vamos al nuevo estado
+    final_state=potential_new_state if ~np.isnan(reward_grid[potential_new_state]) else initial_state
+
+    return final_state
+
+# Función que retorna el reward asociado al estado actual
+def Reward(initial_state,reward_grid):
+    
+    return reward_grid[initial_state] 
+
+# Entrega acciones ortogonales a la entregada
+def ortogonal_movements(action):
+
+     if (action==0) or (action==1):
+          
+          # vertical 1
+          x=2
+          # vertical 2
+          y=3
+          return (x,y)
+      
+     if (action==2) or (action==3):
+          
+          # vertical 1
+          x=0
+          # vertical 2
+          y=1
+          return (x,y)     
+
+### New auxiliar functions ####
