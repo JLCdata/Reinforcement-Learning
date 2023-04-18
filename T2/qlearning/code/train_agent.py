@@ -121,6 +121,8 @@ def plot_performance_metrics(axes, tr_episodes_vec, avg_reward_vec, std_reward_v
 
 
 if __name__ == '__main__':
+
+    #P4
     
     env = gym.make('MountainCar-v0')
 
@@ -144,3 +146,30 @@ if __name__ == '__main__':
 
     
     train_agent(env=env, agent=qlearning_agent, nb_episodes=nb_episodes, render=True)
+    
+    
+    #P5
+    '''
+    env = gym.make('MountainCar-v0')
+
+    # Actions are discrete ({0, 1, 2})
+    nb_actions = np.array(env.action_space.n)
+
+    # Real ranges: [-1.2, 0.6] and [-0.07, 0.07], respectively
+    states_high_bound = env.observation_space.high
+    states_low_bound = env.observation_space.low
+    
+    nb_episodes = 12000
+
+    # P2-5 (param epsilon change)
+    qlearning_agent = QLearningAgent( states_high_bound=states_high_bound, 
+                            states_low_bound=states_low_bound, 
+                            nb_actions=nb_actions,
+                            nb_episodes=nb_episodes,
+                            gamma=0.95,
+                            alpha=0.15,
+                            epsilon=0.6)
+
+    
+    train_agent(env=env, agent=qlearning_agent, nb_episodes=nb_episodes, render=True)
+    '''
