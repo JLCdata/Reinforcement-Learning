@@ -1,13 +1,2 @@
-En esta entrega de avance hay dos versiones del código, una en formato .ipynb (T1.ipynb) y la otra en formato .py (policy_iteration.py)
-con el objetivo de facilitar la lectura según el gusto.
-
-Dentro del archivo utils.py se encuentran las funciones auxiliares para el correcto funcionamiento código.
-
-En el código policy_iteration.py se importa el archivo utils.py pero en el archivo T1.ipynb no se importan, esto con el objetivo de 
-debugear y/o revisar las lógicas con mayor facilidad.
-
-Para ejecutar policy_iteration.py ejecutar en consola dentro del ambiente correspondiente: -> python policy_iteration.py <-
-Con esto se deberian generar 3 imagenes asociadas al reward grid, value function y policy del problema resuelto, y además sus versiones en 
-formato .pdf.
-
-Para ejecutar T1.ipynb, abrir archivo y ejecutar de manera secuencial cada una de las celdas que contiene.
+Ejecutar archivo train_agent.py para obtener los resultados hasta la P-4, para obtener resultados de P-5 descomentar en el archivo qlearning.py
+la condición de decaimiento lineal y además en el archivo train_agent.py comentar la primera ejecución del archivo y descomentar la segunda.
