@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from deep_qnetwork import DeepQNetworkAgent
 
 
-def train_agent(env, eval_env, agent, nb_training_steps, nb_steps_target_replace, render=False):
+def train_agent(env, eval_env, agent, nb_training_steps, nb_steps_target_replace, render=False,id_str='exp'):
 
     tr_steps_vec, avg_reward_vec, std_reward_vec, success_rate_vec = [], [], [], []
     _, (axes) = plt.subplots(1, 2, figsize=(12,4))
@@ -61,7 +61,7 @@ def train_agent(env, eval_env, agent, nb_training_steps, nb_steps_target_replace
             episode_reward = 0
             episode_steps = 0
 
-    save_metrics(agent, nb_steps_target_replace, tr_steps_vec, avg_reward_vec, std_reward_vec, success_rate_vec)
+    save_metrics(agent, nb_steps_target_replace, tr_steps_vec, avg_reward_vec, std_reward_vec, success_rate_vec,id_str)
 
 
 def update_performance_metrics(agent, eval_env, training_step, axes, tr_steps_vec, avg_reward_vec, std_reward_vec, success_rate_vec):
@@ -80,9 +80,9 @@ def update_performance_metrics(agent, eval_env, training_step, axes, tr_steps_ve
                             success_rate_vec)
 
 
-def save_metrics(agent, nb_steps_target_replace, tr_steps_vec, avg_reward_vec, std_reward_vec, success_rate_vec):
-    with open('metrics'+datetime.datetime.now().strftime('%H:%M:%S')+'.csv', 'w') as csv_file:
-            csv_writer = csv.writer(csv_file, delimiter='\t')
+def save_metrics(agent, nb_steps_target_replace, tr_steps_vec, avg_reward_vec, std_reward_vec, success_rate_vec,id_str):
+    with open(id_str+'.csv', 'w') as csv_file:
+            csv_writer = csv.writer(csv_file, delimiter=',')
             csv_writer.writerow(['steps', 'avg_reward', 'std_reward', 'success_rate'])
             for i in range(len(tr_steps_vec)):
                 csv_writer.writerow([tr_steps_vec[i], avg_reward_vec[i], std_reward_vec[i], success_rate_vec[i]])
@@ -148,7 +148,7 @@ def plot_performance_metrics(axes, tr_steps_vec, avg_reward_vec, std_reward_vec,
 
 
 if __name__ == '__main__':
-    
+    '''
     env = gym.make('CartPole-v1')
     eval_env = gym.make('CartPole-v1')
 
@@ -169,11 +169,70 @@ if __name__ == '__main__':
                                              gamma=0.99,
                                              epsilon=0.8,
                                              nb_training_steps=nb_training_steps,
-                                             replay_buffer_size=100000,
-                                             batch_size=256)
+                                             replay_buffer_size=1000,
+                                             batch_size=16)
 
     train_agent(env=env, 
                 eval_env=eval_env,
                 agent=deep_qlearning_agent,
                 nb_training_steps=nb_training_steps,
-                nb_steps_target_replace=10000)
+                nb_steps_target_replace=100)
+    
+    '''
+    
+    exp_11={"name":"exp_11","replay_buffer_size":1000, "batch_size":16, "nb_steps_target_replace":100}
+    exp_12={"name":"exp_12","replay_buffer_size":2500, "batch_size":16, "nb_steps_target_replace":100}
+    exp_13={"name":"exp_13","replay_buffer_size":5000, "batch_size":16, "nb_steps_target_replace":100}
+
+    exp_21={"name":"exp_21","replay_buffer_size":5000, "batch_size":32, "nb_steps_target_replace":100}
+    exp_22={"name":"exp_22","replay_buffer_size":5000, "batch_size":64, "nb_steps_target_replace":100}
+    exp_23={"name":"exp_23","replay_buffer_size":5000, "batch_size":128, "nb_steps_target_replace":100}
+
+    exp_31={"name":"exp_31","replay_buffer_size":5000, "batch_size":128, "nb_steps_target_replace":1}
+    exp_32={"name":"exp_32","replay_buffer_size":5000, "batch_size":128, "nb_steps_target_replace":100}
+    exp_33={"name":"exp_33","replay_buffer_size":5000, "batch_size":128, "nb_steps_target_replace":1000}
+
+    experimentos=[exp_11,exp_12,exp_13,exp_21,exp_22,exp_23,exp_31,exp_32,exp_33]
+
+    # Número de steps
+    nb_training_steps = 100000
+
+    # Iteramos sobre cada conjunto de experimentos
+    for exp in experimentos:
+
+        # Parametros según experimento
+        replay_buffer_size=exp["replay_buffer_size"]
+        batch_size=exp["batch_size"]
+        nb_steps_target_replace=exp["nb_steps_target_replace"]
+
+        # Cada experimento se ejecuta 5 veces
+        for num_exp in range(1,6):
+            
+            # Id identificador del experimento
+            id_str=exp["name"]+'_'+str(num_exp)
+
+            # env
+            env = gym.make('CartPole-v1')
+            eval_env = gym.make('CartPole-v1')
+
+            # Actions are discrete
+            dim_actions = np.array(env.action_space.n)
+
+            # States are continuous
+            dim_states = env.observation_space.shape[0]
+
+            deep_qlearning_agent = DeepQNetworkAgent(dim_states=dim_states, 
+                                                    dim_actions=dim_actions,
+                                                    lr=0.0001,
+                                                    gamma=0.99,
+                                                    epsilon=0.8,
+                                                    nb_training_steps=nb_training_steps,
+                                                    replay_buffer_size=replay_buffer_size,
+                                                    batch_size=batch_size)
+
+            train_agent(env=env, 
+                        eval_env=eval_env,
+                        agent=deep_qlearning_agent,
+                        nb_training_steps=nb_training_steps,
+                        nb_steps_target_replace=nb_steps_target_replace,
+                        id_str=id_str)
