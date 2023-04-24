@@ -15,7 +15,7 @@ class ReplayBuffer:
         self._a_t_array      = np.zeros((max_size))
         self._r_t_array      = np.zeros((max_size,))
         self._s_t1_array     = np.zeros((max_size, dim_states))
-        self._term_t_array   = np.zeros((max_size,))
+        self._term_t_array   = np.zeros((max_size,), dtype=bool)
 
 
     def store_transition(self, s_t, a_t, r_t, s_t1, done_t):
@@ -43,4 +43,6 @@ class ReplayBuffer:
                 self._r_t_array[sample_idxs],
                 self._s_t1_array[sample_idxs],
                 self._term_t_array[sample_idxs])
+        
+ 
         
