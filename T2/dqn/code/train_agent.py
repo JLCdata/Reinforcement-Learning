@@ -193,9 +193,11 @@ if __name__ == '__main__':
     exp_33={"name":"exp_33","replay_buffer_size":5000, "batch_size":128, "nb_steps_target_replace":1000}
 
     experimentos=[exp_11,exp_12,exp_13,exp_21,exp_22,exp_23,exp_31,exp_32,exp_33]
-
+    experimentos=[#exp_11,exp_12,exp_13,
+                  #exp_21,exp_22,exp_23,
+                  exp_31,exp_32,exp_33]
     # Número de steps
-    nb_training_steps = 100000
+    nb_training_steps = 20000
 
     # Iteramos sobre cada conjunto de experimentos
     for exp in experimentos:
@@ -223,7 +225,7 @@ if __name__ == '__main__':
 
             deep_qlearning_agent = DeepQNetworkAgent(dim_states=dim_states, 
                                                     dim_actions=dim_actions,
-                                                    lr=0.0001,
+                                                    lr=0.01,
                                                     gamma=0.99,
                                                     epsilon=0.8,
                                                     nb_training_steps=nb_training_steps,
