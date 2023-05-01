@@ -18,6 +18,10 @@ def perform_single_rollout(env, agent, episode_nb, render=False):
     # np.array(acs) -> shape: (time_steps, nb_acs) if actions are continuous, (time_steps,) if actions are discrete
     # np.array(rws) -> shape: (time_steps,)
 
+    obs_list = []
+    action_list = []
+    reward_list = []
+
     ob_t = env.reset()
     
     done = False
@@ -34,13 +38,21 @@ def perform_single_rollout(env, agent, episode_nb, render=False):
 
         ob_t1, reward, done, _ = env.step(action)
 
+        obs_list.append(ob_t)
+        action_list.append(action)
+        reward_list.append(reward)
+
         ob_t = np.squeeze(ob_t1) # <-- may not be needed depending on gym version
         episode_reward += reward
         
         nb_steps += 1
 
         if done:
-            return None
+            obs_array = np.array(obs_list)
+            action_array = np.array(action_list)
+            reward_array = np.array(reward_list)
+            return obs_array, action_array, reward_array
+        
 
 
 def sample_rollouts(env, agent, training_iter, min_batch_steps):
