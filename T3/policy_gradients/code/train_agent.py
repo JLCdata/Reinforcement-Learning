@@ -36,7 +36,14 @@ def perform_single_rollout(env, agent, episode_nb, render=False):
 
         action = agent.select_action(ob_t)
 
-        ob_t1, reward, done, _ = env.step(action)
+        #ob_t1, reward, done, _ = env.step(action)
+
+        try:    
+            ob_t1, reward, done, _ = env.step(action)
+
+        except:
+
+            ob_t1, reward, done, _ = env.step(action.item())
 
         obs_list.append(ob_t)
         action_list.append(action)
@@ -51,6 +58,7 @@ def perform_single_rollout(env, agent, episode_nb, render=False):
             obs_array = np.array(obs_list)
             action_array = np.array(action_list)
             reward_array = np.array(reward_list)
+
             return obs_array, action_array, reward_array
         
 
@@ -65,17 +73,17 @@ def sample_rollouts(env, agent, training_iter, min_batch_steps):
 
         episode_nb += 1
         render = training_iter%10 == 0 and len(sampled_rollouts) == 0 # Change training_iter%10 to any number you want
-
+        #render=False
         # Use perform_single_rollout to get data 
         # Uncomment once perform_single_rollout works.
         # Return sampled_rollouts
-        """
+
         sample_rollout = perform_single_rollout(env, agent, episode_nb, render=render)
         total_nb_steps += len(sample_rollout[0])
 
         sampled_rollouts.append(sample_rollout)
-        """
-    return None
+        
+    return sampled_rollouts
 
 
 def train_pg_agent(env, agent, training_iterations, min_batch_steps):
@@ -85,22 +93,24 @@ def train_pg_agent(env, agent, training_iterations, min_batch_steps):
 
     
     for tr_iter in range(training_iterations):
+
         # Sample rollouts using sample_rollouts
-        sampled_rollouts = None
+        sampled_rollouts = sample_rollouts(env, agent, training_iterations, min_batch_steps)
 
         # Parse sampled observations, actions and reward into three arrays:
         # performed_batch_steps >= min_batch_steps
         # sampled_obs: Numpy array, shape: (performed_batch_steps, dim_observations)
-        sampled_obs = None
+        sampled_obs = np.concatenate([sampled_rollouts[i][0] for i in range(len(sampled_rollouts))])
         # sampled_acs: Numpy array, shape: (performed_batch_steps, dim_actions) if actions are continuous, (performed_batch_steps,) if actions are discrete
-        sampled_acs = None
+        sampled_acs = np.concatenate([sampled_rollouts[i][1] for i in range(len(sampled_rollouts))])
         # sampled_rew: standard array of length equal to the number of trayectories that were sampled.
         # You may change the shape of sampled_rew, but it is useful keeping it as is to estimate returns.
-        sampled_rew = None
+        sampled_rew = np.concatenate([sampled_rollouts[i][2] for i in range(len(sampled_rollouts))])
 
         # Return estimation
         # estimated_returns: Numpy array, shape: (performed_batch_steps, )
-        estimated_returns = agent.estimate_returns(sampled_rew)
+        estimated_returns = agent.estimate_returns(sampled_rollouts#sampled_rew
+                                                   )
 
         # performance metrics
         update_performance_metrics(tr_iter, sampled_rollouts, axes, tr_iters_vec, avg_reward_vec, std_reward_vec, avg_steps_vec, std_steps_vec)
@@ -174,6 +184,7 @@ def save_metrics(tr_iters_vec, avg_reward_vec, std_reward_vec):
 if __name__ == '__main__':
 
     env = gym.make('Pendulum-v1')
+    #env = gym.make('CartPole-v1')
 
     dim_states = env.observation_space.shape[0]
 
