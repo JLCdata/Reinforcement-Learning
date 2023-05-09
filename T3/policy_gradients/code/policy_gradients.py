@@ -4,19 +4,37 @@ import torch.nn as nn
 import numpy as np
 
 class Policy(nn.Module):
-
+    
     def __init__(self, dim_states, dim_actions, continuous_control):
         super(Policy, self).__init__()
         # MLP, fully connected layers, ReLU activations, linear ouput activation
         # dim_states -> 64 -> 64 -> dim_actions
 
+        self.layers = nn.Sequential(
+            nn.Linear(dim_states, 64),
+            nn.ReLU(),
+            nn.Linear(64, 64),
+            nn.ReLU(),
+            nn.Linear(64, dim_actions)
+        )
+        
         if continuous_control:
             # trainable parameter
-            self._log_std = None
+            self.log_std = nn.Parameter(torch.zeros(1, dim_actions))
 
 
     def forward(self, input):
-        return input
+
+        # tensor format
+        if isinstance(input, torch.Tensor):
+            input=input
+            
+        else:
+            input = torch.from_numpy(input).unsqueeze(dim=0).float()
+            
+        value = self.layers(input)
+        
+        return value
 
 
 class PolicyGradients:
@@ -36,7 +54,7 @@ class PolicyGradients:
 
         self._policy = Policy(self._dim_states, self._dim_actions, self._continuous_control)
         # Adam optimizer
-        self._optimizer = None
+        self._optimizer = AdamW(self._policy.parameters(), lr=self._learning_rate)
 
         self._select_action = self._select_action_continuous if self._continuous_control else self._select_action_discrete
         self._compute_loss = self._compute_loss_continuous if self._continuous_control else self._compute_loss_discrete
