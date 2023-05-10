@@ -152,7 +152,7 @@ class PolicyGradients:
         for rollout_rew in rollouts_rew:
 
             # Largo del episodio (largo del reward)
-            n_steps = len(rollout_rew[2])
+            n_steps = len(rollout_rew)
             estimated_return = np.zeros(n_steps)
 
             if self._use_reward_to_go:
@@ -161,7 +161,7 @@ class PolicyGradients:
 
                 for t in range(n_steps):
 
-                    sum_descount=np.sum(vec_gammas[t:]*rollout_rew[2][t:])
+                    sum_descount=np.sum(vec_gammas[t:]*rollout_rew[t:])
                     estimated_return[t] = sum_descount
             else:
 
@@ -169,7 +169,7 @@ class PolicyGradients:
 
                 vec_gammas=np.array([self._gamma**j for j in range(n_steps)])
 
-                sum_descount=np.sum(vec_gammas*rollout_rew[2])
+                sum_descount=np.sum(vec_gammas*rollout_rew)
 
                 for t in range(n_steps):
                     
