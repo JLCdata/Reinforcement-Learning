@@ -74,8 +74,8 @@ def sample_rollouts(env, agent, training_iter, min_batch_steps):
     while total_nb_steps < min_batch_steps:
 
         episode_nb += 1
-        #render = training_iter%10 == 0 and len(sampled_rollouts) == 0 # Change training_iter%10 to any number you want
-        render=False
+        render = training_iter%10 == 0 and len(sampled_rollouts) == 0 # Change training_iter%10 to any number you want
+        #render=False
         # Use perform_single_rollout to get data 
         # Uncomment once perform_single_rollout works.
         # Return sampled_rollouts
@@ -152,12 +152,12 @@ def update_performance_metrics(tr_iter, sampled_rollouts, axes, tr_iters_vec, av
 
     tr_iters_vec.append(tr_iter)
 
-    #plot_performance_metrics(axes, 
-    #                        tr_iters_vec, 
-    #                        avg_reward_vec, 
-    #                        std_reward_vec, 
-    #                        avg_steps_vec,
-    #                        std_steps_vec)
+    plot_performance_metrics(axes, 
+                            tr_iters_vec, 
+                            avg_reward_vec, 
+                            std_reward_vec, 
+                            avg_steps_vec,
+                            std_steps_vec)
 
 
 def plot_performance_metrics(axes, tr_iters_vec, avg_reward_vec, std_reward_vec, avg_steps_vec, std_steps_vec):
@@ -185,9 +185,9 @@ def save_metrics(tr_iters_vec, avg_reward_vec, std_reward_vec,id_str):
 
 if __name__ == '__main__':
 
-    '''
-    #env = gym.make('Pendulum-v1')
-    env = gym.make('CartPole-v1')
+    
+    env = gym.make('Pendulum-v1')
+    #env = gym.make('CartPole-v1')
 
     dim_states = env.observation_space.shape[0]
 
@@ -199,15 +199,16 @@ if __name__ == '__main__':
                                              lr=0.005,
                                              gamma=0.99,
                                              continuous_control=continuous_control,
-                                             reward_to_go=True,
+                                             reward_to_go=False,
                                              use_baseline=True)
 
     train_pg_agent(env=env, 
                    agent=policy_gradients_agent, 
-                   training_iterations=5,
+                   training_iterations=1000,
                    min_batch_steps=5000)
-    '''
     
+    
+    ''''
     ################ Experimentos CartPole #############################
     exp_11={"name":"exp_11", "batch_size":500, "use_baseline":False,"reward_to_go":False}
     exp_21={"name":"exp_21", "batch_size":500, "use_baseline":False,"reward_to_go":True}
@@ -222,7 +223,7 @@ if __name__ == '__main__':
     experimentos=[exp_11,exp_21,exp_31,exp_41,exp_12,exp_22,exp_32,exp_42]
     
     # Número de steps
-    training_iterations=1000
+    training_iterations=100
     lr=0.005
     gamma=0.99
 
@@ -264,6 +265,7 @@ if __name__ == '__main__':
                         id_str=id_str)
             
     '''
+    '''
     ################ Experimentos Pendulum #############################
     exp_12={"name":"exp_12", "batch_size":5000, "use_baseline":False,"reward_to_go":False}
     exp_22={"name":"exp_22", "batch_size":5000, "use_baseline":False,"reward_to_go":True}
@@ -273,7 +275,7 @@ if __name__ == '__main__':
     experimentos=[exp_12,exp_22,exp_32,exp_42]
     
     # Número de steps
-    training_iterations=3
+    training_iterations=1000
     lr=0.005
     gamma=0.99
 
