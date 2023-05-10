@@ -38,12 +38,14 @@ def perform_single_rollout(env, agent, episode_nb, render=False):
 
         #ob_t1, reward, done, _ = env.step(action)
 
-        try:    
+        if agent._continuous_control:
+           
             ob_t1, reward, done, _ = env.step(action)
 
-        except:
+        else:
 
             ob_t1, reward, done, _ = env.step(action.item())
+
 
         obs_list.append(ob_t)
         action_list.append(action)
@@ -72,8 +74,8 @@ def sample_rollouts(env, agent, training_iter, min_batch_steps):
     while total_nb_steps < min_batch_steps:
 
         episode_nb += 1
-        render = training_iter%10 == 0 and len(sampled_rollouts) == 0 # Change training_iter%10 to any number you want
-        #render=False
+        #render = training_iter%10 == 0 and len(sampled_rollouts) == 0 # Change training_iter%10 to any number you want
+        render=False
         # Use perform_single_rollout to get data 
         # Uncomment once perform_single_rollout works.
         # Return sampled_rollouts
@@ -86,7 +88,7 @@ def sample_rollouts(env, agent, training_iter, min_batch_steps):
     return sampled_rollouts
 
 
-def train_pg_agent(env, agent, training_iterations, min_batch_steps):
+def train_pg_agent(env, agent, training_iterations, min_batch_steps,id_str='exp'):
 
     tr_iters_vec, avg_reward_vec, std_reward_vec, avg_steps_vec, std_steps_vec = [], [], [], [], []
     _, (axes) = plt.subplots(1, 2, figsize=(12,4))
@@ -105,19 +107,18 @@ def train_pg_agent(env, agent, training_iterations, min_batch_steps):
         sampled_acs = np.concatenate([sampled_rollouts[i][1] for i in range(len(sampled_rollouts))])
         # sampled_rew: standard array of length equal to the number of trayectories that were sampled.
         # You may change the shape of sampled_rew, but it is useful keeping it as is to estimate returns.
-        sampled_rew = np.concatenate([sampled_rollouts[i][2] for i in range(len(sampled_rollouts))])
+        sampled_rew = [sampled_rollouts[i][2] for i in range(len(sampled_rollouts))]
 
         # Return estimation
         # estimated_returns: Numpy array, shape: (performed_batch_steps, )
-        estimated_returns = agent.estimate_returns(sampled_rollouts#sampled_rew
-                                                   )
+        estimated_returns = agent.estimate_returns(sampled_rew)
 
         # performance metrics
         update_performance_metrics(tr_iter, sampled_rollouts, axes, tr_iters_vec, avg_reward_vec, std_reward_vec, avg_steps_vec, std_steps_vec)
 
         agent.update(sampled_obs, sampled_acs, estimated_returns)
     
-    save_metrics(tr_iters_vec,avg_reward_vec, std_reward_vec)
+    save_metrics(tr_iters_vec,avg_reward_vec, std_reward_vec,id_str)
     
 
 def update_performance_metrics(tr_iter, sampled_rollouts, axes, tr_iters_vec, avg_reward_vec, std_reward_vec, avg_steps_vec, std_steps_vec):
@@ -151,12 +152,12 @@ def update_performance_metrics(tr_iter, sampled_rollouts, axes, tr_iters_vec, av
 
     tr_iters_vec.append(tr_iter)
 
-    plot_performance_metrics(axes, 
-                            tr_iters_vec, 
-                            avg_reward_vec, 
-                            std_reward_vec, 
-                            avg_steps_vec,
-                            std_steps_vec)
+    #plot_performance_metrics(axes, 
+    #                        tr_iters_vec, 
+    #                        avg_reward_vec, 
+    #                        std_reward_vec, 
+    #                        avg_steps_vec,
+    #                        std_steps_vec)
 
 
 def plot_performance_metrics(axes, tr_iters_vec, avg_reward_vec, std_reward_vec, avg_steps_vec, std_steps_vec):
@@ -173,9 +174,10 @@ def plot_performance_metrics(axes, tr_iters_vec, avg_reward_vec, std_reward_vec,
     plt.pause(0.05)
 
 
-def save_metrics(tr_iters_vec, avg_reward_vec, std_reward_vec):
-    with open('metrics'+datetime.datetime.now().strftime('%H:%M:%S')+'.csv', 'w') as csv_file:
-        csv_writer = csv.writer(csv_file, delimiter='\t')
+def save_metrics(tr_iters_vec, avg_reward_vec, std_reward_vec,id_str):
+    
+    with open(id_str+'.csv', 'w') as csv_file:
+        csv_writer = csv.writer(csv_file, delimiter=',')
         csv_writer.writerow(['steps', 'avg_reward', 'std_reward'])
         for i in range(len(tr_iters_vec)):
             csv_writer.writerow([tr_iters_vec[i], avg_reward_vec[i], std_reward_vec[i]])
@@ -183,8 +185,9 @@ def save_metrics(tr_iters_vec, avg_reward_vec, std_reward_vec):
 
 if __name__ == '__main__':
 
-    env = gym.make('Pendulum-v1')
-    #env = gym.make('CartPole-v1')
+    '''
+    #env = gym.make('Pendulum-v1')
+    env = gym.make('CartPole-v1')
 
     dim_states = env.observation_space.shape[0]
 
@@ -196,10 +199,118 @@ if __name__ == '__main__':
                                              lr=0.005,
                                              gamma=0.99,
                                              continuous_control=continuous_control,
-                                             reward_to_go=False,
-                                             use_baseline=False)
+                                             reward_to_go=True,
+                                             use_baseline=True)
 
     train_pg_agent(env=env, 
                    agent=policy_gradients_agent, 
-                   training_iterations=1000,
+                   training_iterations=5,
                    min_batch_steps=5000)
+    '''
+    
+    ################ Experimentos CartPole #############################
+    exp_11={"name":"exp_11", "batch_size":500, "use_baseline":False,"reward_to_go":False}
+    exp_21={"name":"exp_21", "batch_size":500, "use_baseline":False,"reward_to_go":True}
+    exp_31={"name":"exp_31", "batch_size":500, "use_baseline":True,"reward_to_go":False}
+    exp_41={"name":"exp_41", "batch_size":500, "use_baseline":True,"reward_to_go":True}    
+
+    exp_12={"name":"exp_12", "batch_size":5000, "use_baseline":False,"reward_to_go":False}
+    exp_22={"name":"exp_22", "batch_size":5000, "use_baseline":False,"reward_to_go":True}
+    exp_32={"name":"exp_32", "batch_size":5000, "use_baseline":True,"reward_to_go":False}
+    exp_42={"name":"exp_42", "batch_size":5000, "use_baseline":True,"reward_to_go":True}
+
+    experimentos=[exp_11,exp_21,exp_31,exp_41,exp_12,exp_22,exp_32,exp_42]
+    
+    # Número de steps
+    training_iterations=1000
+    lr=0.005
+    gamma=0.99
+
+    # Iteramos sobre cada conjunto de experimentos
+    for exp in experimentos:
+
+        # Parametros según experimento
+        batch_size=exp["batch_size"]
+        use_baseline=exp["use_baseline"]
+        reward_to_go=exp["reward_to_go"]
+
+        # Cada experimento se ejecuta 3 veces
+        for num_exp in range(1,4):
+            
+            # Id identificador del experimento
+            id_str=exp["name"]+'_'+str(num_exp)+'_'+"CartPole"
+
+            # env
+            env = gym.make('CartPole-v1')
+
+            dim_states = env.observation_space.shape[0]
+
+            continuous_control = isinstance(env.action_space, gym.spaces.Box)
+
+            dim_actions = env.action_space.shape[0] if continuous_control else env.action_space.n
+
+            policy_gradients_agent = PolicyGradients(dim_states=dim_states, 
+                                                    dim_actions=dim_actions, 
+                                                    lr=lr,
+                                                    gamma=gamma,
+                                                    continuous_control=continuous_control,
+                                                    reward_to_go=reward_to_go,
+                                                    use_baseline=use_baseline)
+
+            train_pg_agent(env=env, 
+                        agent=policy_gradients_agent, 
+                        training_iterations=training_iterations,
+                        min_batch_steps=batch_size,
+                        id_str=id_str)
+            
+    '''
+    ################ Experimentos Pendulum #############################
+    exp_12={"name":"exp_12", "batch_size":5000, "use_baseline":False,"reward_to_go":False}
+    exp_22={"name":"exp_22", "batch_size":5000, "use_baseline":False,"reward_to_go":True}
+    exp_32={"name":"exp_32", "batch_size":5000, "use_baseline":True,"reward_to_go":False}
+    exp_42={"name":"exp_42", "batch_size":5000, "use_baseline":True,"reward_to_go":True}
+
+    experimentos=[exp_12,exp_22,exp_32,exp_42]
+    
+    # Número de steps
+    training_iterations=3
+    lr=0.005
+    gamma=0.99
+
+    # Iteramos sobre cada conjunto de experimentos
+    for exp in experimentos:
+
+        # Parametros según experimento
+        batch_size=exp["batch_size"]
+        use_baseline=exp["use_baseline"]
+        reward_to_go=exp["reward_to_go"]
+
+        # Cada experimento se ejecuta 3 veces
+        for num_exp in range(1,4):
+            
+            # Id identificador del experimento
+            id_str=exp["name"]+'_'+str(num_exp)+'_'+"Pendulum"
+
+            # env
+            env = gym.make('Pendulum-v1')
+            
+            dim_states = env.observation_space.shape[0]
+
+            continuous_control = isinstance(env.action_space, gym.spaces.Box)
+
+            dim_actions = env.action_space.shape[0] if continuous_control else env.action_space.n
+
+            policy_gradients_agent = PolicyGradients(dim_states=dim_states, 
+                                                    dim_actions=dim_actions, 
+                                                    lr=lr,
+                                                    gamma=gamma,
+                                                    continuous_control=continuous_control,
+                                                    reward_to_go=reward_to_go,
+                                                    use_baseline=use_baseline)
+
+            train_pg_agent(env=env, 
+                        agent=policy_gradients_agent, 
+                        training_iterations=training_iterations,
+                        min_batch_steps=batch_size,
+                        id_str=id_str)
+    '''
