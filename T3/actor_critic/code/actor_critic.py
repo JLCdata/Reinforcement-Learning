@@ -2,34 +2,94 @@ import torch
 import torch.nn as nn
 
 import numpy as np
+from torch.optim import AdamW
+import torch.nn.functional as F
 
-
+# Actor
 class Actor(nn.Module):
-
+    
     def __init__(self, dim_states, dim_actions, continuous_control):
         super(Actor, self).__init__()
         # MLP, fully connected layers, ReLU activations, linear ouput activation
         # dim_states -> 64 -> 64 -> dim_actions
 
+        # Inicialización de pesos con distribución uniforme
+        def init_weights(m):
+            if isinstance(m, nn.Linear):
+
+                #nn.init.normal_(m.weight, mean=0.0, std=1)
+                #nn.init.normal_(m.weight, mean=0.0, std=1)
+                nn.init.uniform_(m.weight, a=0.0, b=1.0)
+                nn.init.uniform_(m.bias, a=0.0, b=1.0)
+
+        self.layers = nn.Sequential(
+            nn.Linear(dim_states, 64),
+            nn.ReLU(),
+            nn.Linear(64, 64),
+            nn.ReLU(),
+            nn.Linear(64, dim_actions)
+        )
+
+        self.layers.apply(init_weights)
+
         if continuous_control:
             # trainable parameter
-            self._log_std = None
+            self.log_std = nn.Parameter(torch.zeros(1, dim_actions))
+
 
 
     def forward(self, input):
-        return input
+
+        # tensor format
+        if isinstance(input, torch.Tensor):
+            input=input
+            
+        else:
+            input = torch.from_numpy(input).unsqueeze(dim=0).float()
+            
+        value = self.layers(input)
+        
+        return value
 
 
 class Critic(nn.Module):
-
+    
     def __init__(self, dim_states):
         super(Critic, self).__init__()
         # MLP, fully connected layers, ReLU activations, linear ouput activation
         # dim_states -> 64 -> 64 -> 1
 
+        # Inicialización de pesos con distribución uniforme
+        def init_weights(m):
+            if isinstance(m, nn.Linear):
 
+                #nn.init.normal_(m.weight, mean=0.0, std=1)
+                #nn.init.normal_(m.weight, mean=0.0, std=1)
+                nn.init.uniform_(m.weight, a=0.0, b=1.0)
+                nn.init.uniform_(m.bias, a=0.0, b=1.0)
+
+        self.layers = nn.Sequential(
+            nn.Linear(dim_states, 64),
+            nn.ReLU(),
+            nn.Linear(64, 64),
+            nn.ReLU(),
+            nn.Linear(64, 1)
+        )
+
+        self.layers.apply(init_weights)
+        
     def forward(self, input):
-        return input
+    
+        # tensor format
+        if isinstance(input, torch.Tensor):
+            input=input
+            
+        else:
+            input = torch.from_numpy(input).unsqueeze(dim=0).float()
+            
+        value = self.layers(input)
+        
+        return value
 
 
 class ActorCriticAgent:
@@ -48,12 +108,12 @@ class ActorCriticAgent:
         self._actor = Actor(self._dim_states, self._dim_actions, self._continuous_control)
 
         # Adam optimizer
-        self._actor_optimizer = None
+        self._actor_optimizer = AdamW(self._actor.parameters(), lr=self._actor_lr)
 
         self._critic = Critic(self._dim_states)
 
         # Adam optimizer
-        self._critic_optimizer = None
+        self._critic_optimizer = AdamW(self._critic.parameters(), lr=self._critic_lr)
 
         self._select_action = self._select_action_continuous if self._continuous_control else self._select_action_discrete
         self._compute_actor_loss = self._compute_actor_loss_continuous if self._continuous_control else self._compute_actor_loss_discrete
@@ -65,36 +125,115 @@ class ActorCriticAgent:
 
     def _select_action_discrete(self, observation):
         # sample from categorical distribution
-        pass
+        RN_actor=self._actor 
+        logits=RN_actor(observation)
+
+        # Probabilidad de cada acción
+        probs = torch.softmax(logits, dim=-1)
+
+        # Distribución de probabilidad categorica
+        dist = torch.distributions.Categorical(probs)
+
+        # Sample de acción
+        action = dist.sample()#.item()
+     
+        return action
+
 
     def _select_action_continuous(self, observation):
         # sample from normal distribution
         # use the log std trainable parameter
-        pass
+
+        # RN
+        RN_actor=self._actor
+
+        # Parametro log std de la RN
+        log_std=RN_actor.log_std
+        std = torch.exp(log_std)
+
+        # Politica dada la observación (Representa el promedio de la distribución normal que muestrea acciones)
+        means=RN_actor(observation)
+        
+        # Distribución normal de parametros mean y std, esta se utiliza para muestrear acciones de modo de tal de explorar el espacio de acciones
+        dist = torch.distributions.Normal(means, std)
+
+        # sample de acción
+        action = dist.sample()
+        
+        return action
 
 
     def _compute_actor_loss_discrete(self, observation_batch, action_batch, advantage_batch):
         # use negative logprobs * advantages
-        pass
+        logits=self._actor(observation_batch)
+
+        # Distribución de probabilidad categorica
+        dist = torch.distributions.Categorical(logits=logits)
+        log_probs=dist.log_prob(torch.tensor(action_batch)).squeeze(0)
+        advantage=torch.tensor(advantage_batch)
+        loss=torch.mean(log_probs*advantage)#.item()
+
+        return loss
 
 
     def _compute_actor_loss_continuous(self, observation_batch, action_batch, advantage_batch):
         # use negative logprobs * advantages
-        pass
+        means=self._actor(observation_batch).squeeze(0).squeeze(1)
+
+        log_std=self._actor.log_std
+        std = torch.exp(log_std)
+
+        # Distribución normal de parametros mean y std, esta se utiliza para muestrear acciones de modo de tal de explorar el espacio de acciones
+        dist = torch.distributions.Normal(means, std)
+        log_probs=dist.log_prob(torch.tensor((action_batch))).squeeze(0)
+        advantage=torch.tensor(advantage_batch)
+        print(log_probs)
+        print(advantage)
+        loss=torch.mean(log_probs*advantage)#.item()
+
+        return loss
 
 
     def _compute_critic_loss(self, observation_batch, reward_batch, next_observation_batch, done_batch):
         # minimize mean((r + gamma * V(s_t1) - V(s_t))^2)
-        pass
+        value = self._critic(observation_batch).squeeze(0)#.squeeze(0)
+        done_batch=torch.tensor(done_batch).view(-1, 1)
+        reward_batch=torch.tensor(reward_batch).view(-1, 1).float()
+        target = reward_batch + ~done_batch * self._gamma * self._critic(next_observation_batch)[0].detach()
+        #print(value.shape)
+        #print(target.shape)
+        loss = F.mse_loss(value, target)
+        
+        return loss
 
 
     def update_actor(self, observation_batch, action_batch, reward_batch, next_observation_batch, done_batch):
         # compute the advantages using the critic and update the actor parameters
+        value = self._critic(observation_batch).squeeze(0)
+        done_batch=torch.tensor(done_batch).view(-1, 1)
+        reward_batch=torch.tensor(reward_batch).view(-1, 1).float()
+        target = reward_batch + ~done_batch * self._gamma * self._critic(next_observation_batch)[0].detach()
+        #print(target)
+        #print(value)
+        advantage = (target - value).detach()
+
         # use self._compute_actor_loss
-        pass
+        loss=-self._compute_actor_loss(observation_batch, action_batch,advantage)
+        
+        # Backpropagation
+        self._actor.zero_grad()
+        loss.backward()
+        self._actor_optimizer.step()
+        
         
         
     def update_critic(self, observation_batch, reward_batch, next_observation_batch, done_batch):
         # update the critic
         # use self._compute_critic_loss
-        pass
+        loss=self. _compute_critic_loss(observation_batch, reward_batch, next_observation_batch, done_batch)
+        
+        # Backpropagation
+        self._critic.zero_grad()
+        loss.backward()
+        self._critic_optimizer.step()
+        
