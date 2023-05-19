@@ -42,6 +42,7 @@ def perform_single_rollout(env, agent, render=False):
             ob_t1, reward, done, _ = env.step(action)
 
         except:
+
             ob_t1, reward, done, _ = env.step(action.item())
         
         #ob_t1, reward, done, _ = env.step(action)
@@ -78,8 +79,8 @@ def sample_rollouts(env, agent, training_iter, min_batch_steps):
     while total_nb_steps < min_batch_steps:
 
         episode_nb += 1
-        render = training_iter%10 == 0 and len(sampled_rollouts) == 0
-
+        #render = training_iter%10 == 0 and len(sampled_rollouts) == 0
+        render=False
         # Use perform_single_rollout to get data 
         # Uncomment once perform_single_rollout works.
         # Return sampled_rollouts
@@ -93,7 +94,7 @@ def sample_rollouts(env, agent, training_iter, min_batch_steps):
     return sampled_rollouts
 
 
-def train_agent(env, agent, training_iterations, min_batch_steps, nb_critic_updates):
+def train_agent(env, agent, training_iterations, min_batch_steps, nb_critic_updates,id_str='exp'):
 
     tr_iters_vec, avg_reward_vec, std_reward_vec, avg_steps_vec = [], [], [], []
     _, (axes) = plt.subplots(1, 2, figsize=(12,4))
@@ -122,7 +123,7 @@ def train_agent(env, agent, training_iterations, min_batch_steps, nb_critic_upda
         
         agent.update_actor(sampled_obs_t, sampled_acs_t, sampled_rew_t, sampled_obs_t1, sampled_done_t)
 
-    save_metrics(tr_iters_vec, avg_reward_vec, std_reward_vec)
+    save_metrics(tr_iters_vec, avg_reward_vec, std_reward_vec,id_str)
 
 
 def update_performance_metrics(tr_iter, sampled_rollouts, axes, tr_iters_vec, avg_reward_vec, std_reward_vec, avg_steps_vec):
@@ -153,11 +154,11 @@ def update_performance_metrics(tr_iter, sampled_rollouts, axes, tr_iters_vec, av
 
     tr_iters_vec.append(tr_iter)
 
-    plot_performance_metrics(axes, 
-                            tr_iters_vec, 
-                            avg_reward_vec, 
-                            std_reward_vec, 
-                            avg_steps_vec)
+    #plot_performance_metrics(axes, 
+    #                        tr_iters_vec, 
+    #                        avg_reward_vec, 
+    #                        std_reward_vec, 
+    #                        avg_steps_vec)
 
 
 def plot_performance_metrics(axes, tr_iters_vec, avg_reward_vec, std_reward_vec, avg_steps_vec):
@@ -174,9 +175,9 @@ def plot_performance_metrics(axes, tr_iters_vec, avg_reward_vec, std_reward_vec,
     plt.pause(0.05)
 
 
-def save_metrics(tr_iters_vec, avg_reward_vec, std_reward_vec):
-    with open('metrics'+datetime.datetime.now().strftime('%H:%M:%S')+'.csv', 'w') as csv_file:
-        csv_writer = csv.writer(csv_file, delimiter='\t')
+def save_metrics(tr_iters_vec, avg_reward_vec, std_reward_vec,id_str):
+    with open(id_str+'.csv', 'w') as csv_file:
+        csv_writer = csv.writer(csv_file, delimiter=',')
         csv_writer.writerow(['steps', 'avg_reward', 'std_reward'])
         for i in range(len(tr_iters_vec)):
             csv_writer.writerow([tr_iters_vec[i], avg_reward_vec[i], std_reward_vec[i]])
@@ -184,8 +185,9 @@ def save_metrics(tr_iters_vec, avg_reward_vec, std_reward_vec):
 
 if __name__ == '__main__':
 
-    #env = gym.make('Pendulum-v1')
-    env = gym.make('CartPole-v1')
+    '''
+    env = gym.make('Pendulum-v1')
+    #env = gym.make('CartPole-v1')
     #env = gym.make('Acrobot-v1')
     dim_states = env.observation_space.shape[0]
 
@@ -196,12 +198,231 @@ if __name__ == '__main__':
     actor_critic_agent = ActorCriticAgent(dim_states=dim_states,
                                           dim_actions=dim_actions,
                                           actor_lr=0.001,
-                                          critic_lr=0.01,
+                                          critic_lr=0.001,
                                           gamma=0.99,
                                           continuous_control=continuous_control)
 
     train_agent(env=env, 
                 agent=actor_critic_agent, 
-                training_iterations=1000, 
+                training_iterations=200, 
                 min_batch_steps=5000,
                 nb_critic_updates=100)
+    '''
+    '''
+    ################ Experimentos CartPole #############################
+    
+    actor_lr=0.001
+    critic_lr=0.001
+    gamma=0.99
+    training_iterations=200
+
+    exp_11={"name":"exp_11", "batch_size":500, "nb_critic_updates":1}
+    exp_21={"name":"exp_21", "batch_size":500, "nb_critic_updates":10}
+    exp_31={"name":"exp_31", "batch_size":500, "nb_critic_updates":100}
+   
+    exp_12={"name":"exp_12", "batch_size":5000,"nb_critic_updates":1}
+    exp_22={"name":"exp_22", "batch_size":5000,"nb_critic_updates":10}
+    exp_32={"name":"exp_32", "batch_size":5000,"nb_critic_updates":100}
+   
+    experimentos=[exp_11,
+                  exp_21,
+                   exp_31,#exp_12,exp_22,exp_32
+                   ]
+
+    # Iteramos sobre cada conjunto de experimentos
+    for exp in experimentos:
+
+        # Parametros según experimento
+        batch_size=exp["batch_size"]
+        nb_critic_updates=exp["nb_critic_updates"]
+        
+        # Cada experimento se ejecuta 3 veces
+        for num_exp in range(1,4):
+            
+            # Id identificador del experimento
+            id_str=exp["name"]+'_'+str(num_exp)+'_'+"CartPole"
+
+            # env
+            env = gym.make('CartPole-v1')
+
+            dim_states = env.observation_space.shape[0]
+
+            continuous_control = isinstance(env.action_space, gym.spaces.Box)
+
+            dim_actions = env.action_space.shape[0] if continuous_control else env.action_space.n
+
+            actor_critic_agent = ActorCriticAgent(dim_states=dim_states,
+                                          dim_actions=dim_actions,
+                                          actor_lr=actor_lr,
+                                          critic_lr=critic_lr,
+                                          gamma=gamma,
+                                          continuous_control=continuous_control)
+
+            train_agent(env=env, 
+                agent=actor_critic_agent, 
+                training_iterations=training_iterations, 
+                min_batch_steps=batch_size,
+                nb_critic_updates=nb_critic_updates,
+                id_str=id_str)
+    '''     
+    '''
+    ################ Experimentos Acrobot #############################
+    
+    actor_lr=0.001
+    critic_lr=0.001
+    gamma=0.99
+    training_iterations=200
+
+    exp_11={"name":"exp_11", "batch_size":500, "nb_critic_updates":1}
+    exp_21={"name":"exp_21", "batch_size":500, "nb_critic_updates":10}
+    exp_31={"name":"exp_31", "batch_size":500, "nb_critic_updates":100}
+   
+    exp_12={"name":"exp_12", "batch_size":5000,"nb_critic_updates":1}
+    exp_22={"name":"exp_22", "batch_size":5000,"nb_critic_updates":10}
+    exp_32={"name":"exp_32", "batch_size":5000,"nb_critic_updates":100}
+   
+    experimentos=[exp_11,
+                  exp_21,
+                   exp_31,exp_12,exp_22,exp_32]
+
+    # Iteramos sobre cada conjunto de experimentos
+    for exp in experimentos:
+
+        # Parametros según experimento
+        batch_size=exp["batch_size"]
+        nb_critic_updates=exp["nb_critic_updates"]
+        
+        # Cada experimento se ejecuta 3 veces
+        for num_exp in range(1,4):
+            
+            # Id identificador del experimento
+            id_str=exp["name"]+'_'+str(num_exp)+'_'+"Acrobot"
+
+            # env
+            env = gym.make('Acrobot-v1')
+
+            dim_states = env.observation_space.shape[0]
+
+            continuous_control = isinstance(env.action_space, gym.spaces.Box)
+
+            dim_actions = env.action_space.shape[0] if continuous_control else env.action_space.n
+
+            actor_critic_agent = ActorCriticAgent(dim_states=dim_states,
+                                          dim_actions=dim_actions,
+                                          actor_lr=actor_lr,
+                                          critic_lr=critic_lr,
+                                          gamma=gamma,
+                                          continuous_control=continuous_control)
+
+            train_agent(env=env, 
+                agent=actor_critic_agent, 
+                training_iterations=training_iterations, 
+                min_batch_steps=batch_size,
+                nb_critic_updates=nb_critic_updates,
+                id_str=id_str)
+    '''
+    
+    ################ Experimentos Pendulum 1 #############################
+    
+    actor_lr=0.001
+    critic_lr=0.001
+    #critic_lr=0.01
+    gamma=0.99
+    training_iterations=2000
+
+
+    exp_12={"name":"exp_12", "batch_size":5000,"nb_critic_updates":1}
+    exp_22={"name":"exp_22", "batch_size":5000,"nb_critic_updates":10}
+    exp_32={"name":"exp_32", "batch_size":5000,"nb_critic_updates":100}
+   
+    experimentos=[#exp_12,exp_22,
+    exp_32]
+
+    # Iteramos sobre cada conjunto de experimentos
+    for exp in experimentos:
+        print(exp)
+
+        # Parametros según experimento
+        batch_size=exp["batch_size"]
+        nb_critic_updates=exp["nb_critic_updates"]
+        
+        # Cada experimento se ejecuta 3 veces
+        for num_exp in range(1,4):
+            
+            # Id identificador del experimento
+            id_str=exp["name"]+'_'+str(num_exp)+'_'+"Pendulum_1"
+
+            # env
+            env = gym.make('Pendulum-v1')
+
+            dim_states = env.observation_space.shape[0]
+
+            continuous_control = isinstance(env.action_space, gym.spaces.Box)
+
+            dim_actions = env.action_space.shape[0] if continuous_control else env.action_space.n
+
+            actor_critic_agent = ActorCriticAgent(dim_states=dim_states,
+                                          dim_actions=dim_actions,
+                                          actor_lr=actor_lr,
+                                          critic_lr=critic_lr,
+                                          gamma=gamma,
+                                          continuous_control=continuous_control)
+
+            train_agent(env=env, 
+                agent=actor_critic_agent, 
+                training_iterations=training_iterations, 
+                min_batch_steps=batch_size,
+                nb_critic_updates=nb_critic_updates,
+                id_str=id_str)
+
+
+    ################ Experimentos Pendulum 2 #############################
+    
+    actor_lr=0.001
+    #critic_lr=0.001
+    critic_lr=0.01
+    gamma=0.99
+    training_iterations=2000
+
+
+    exp_12={"name":"exp_12", "batch_size":5000,"nb_critic_updates":1}
+    exp_22={"name":"exp_22", "batch_size":5000,"nb_critic_updates":10}
+    exp_32={"name":"exp_32", "batch_size":5000,"nb_critic_updates":100}
+   
+    experimentos=[exp_12,exp_22,exp_32]
+
+    # Iteramos sobre cada conjunto de experimentos
+    for exp in experimentos:
+        print(exp)
+        # Parametros según experimento
+        batch_size=exp["batch_size"]
+        nb_critic_updates=exp["nb_critic_updates"]
+        
+        # Cada experimento se ejecuta 3 veces
+        for num_exp in range(1,4):
+            
+            # Id identificador del experimento
+            id_str=exp["name"]+'_'+str(num_exp)+'_'+"Pendulum_2"
+            print(id_str)
+            # env
+            env = gym.make('Pendulum-v1')
+
+            dim_states = env.observation_space.shape[0]
+
+            continuous_control = isinstance(env.action_space, gym.spaces.Box)
+
+            dim_actions = env.action_space.shape[0] if continuous_control else env.action_space.n
+
+            actor_critic_agent = ActorCriticAgent(dim_states=dim_states,
+                                          dim_actions=dim_actions,
+                                          actor_lr=actor_lr,
+                                          critic_lr=critic_lr,
+                                          gamma=gamma,
+                                          continuous_control=continuous_control)
+
+            train_agent(env=env, 
+                agent=actor_critic_agent, 
+                training_iterations=training_iterations, 
+                min_batch_steps=batch_size,
+                nb_critic_updates=nb_critic_updates,
+                id_str=id_str) 

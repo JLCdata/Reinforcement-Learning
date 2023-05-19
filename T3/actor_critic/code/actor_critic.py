@@ -13,15 +13,7 @@ class Actor(nn.Module):
         # MLP, fully connected layers, ReLU activations, linear ouput activation
         # dim_states -> 64 -> 64 -> dim_actions
 
-        # Inicialización de pesos con distribución uniforme
-        def init_weights(m):
-            if isinstance(m, nn.Linear):
-
-                #nn.init.normal_(m.weight, mean=0.0, std=1)
-                #nn.init.normal_(m.weight, mean=0.0, std=1)
-                nn.init.uniform_(m.weight, a=0.0, b=1.0)
-                nn.init.uniform_(m.bias, a=0.0, b=1.0)
-
+       
         self.layers = nn.Sequential(
             nn.Linear(dim_states, 64),
             nn.ReLU(),
@@ -30,7 +22,7 @@ class Actor(nn.Module):
             nn.Linear(64, dim_actions)
         )
 
-        self.layers.apply(init_weights)
+       
 
         if continuous_control:
             # trainable parameter
@@ -59,14 +51,7 @@ class Critic(nn.Module):
         # MLP, fully connected layers, ReLU activations, linear ouput activation
         # dim_states -> 64 -> 64 -> 1
 
-        # Inicialización de pesos con distribución uniforme
-        def init_weights(m):
-            if isinstance(m, nn.Linear):
-
-                #nn.init.normal_(m.weight, mean=0.0, std=1)
-                #nn.init.normal_(m.weight, mean=0.0, std=1)
-                nn.init.uniform_(m.weight, a=0.0, b=1.0)
-                nn.init.uniform_(m.bias, a=0.0, b=1.0)
+       
 
         self.layers = nn.Sequential(
             nn.Linear(dim_states, 64),
@@ -76,7 +61,7 @@ class Critic(nn.Module):
             nn.Linear(64, 1)
         )
 
-        self.layers.apply(init_weights)
+        
         
     def forward(self, input):
     
@@ -115,18 +100,18 @@ class ActorCriticAgent:
         # Adam optimizer
         self._critic_optimizer = AdamW(self._critic.parameters(), lr=self._critic_lr)
 
-        self._select_action = self._select_action_continuous if self._continuous_control else self._select_action_discrete
-        self._compute_actor_loss = self._compute_actor_loss_continuous if self._continuous_control else self._compute_actor_loss_discrete
+        self._select_action = self.select_action_continuous if self._continuous_control else self.select_action_discrete
+        self._compute_actor_loss = self.compute_actor_loss_continuous if self._continuous_control else self.compute_actor_loss_discrete
 
 
     def select_action(self, observation):
         return self._select_action(observation)
         
 
-    def _select_action_discrete(self, observation):
+    def select_action_discrete(self, observation):
         # sample from categorical distribution
-        RN_actor=self._actor 
-        logits=RN_actor(observation)
+         
+        logits=self._actor(observation)#.detach()
 
         # Probabilidad de cada acción
         probs = torch.softmax(logits, dim=-1)
@@ -140,19 +125,16 @@ class ActorCriticAgent:
         return action
 
 
-    def _select_action_continuous(self, observation):
+    def select_action_continuous(self, observation):
         # sample from normal distribution
         # use the log std trainable parameter
 
-        # RN
-        RN_actor=self._actor
-
         # Parametro log std de la RN
-        log_std=RN_actor.log_std
+        log_std=self._actor.log_std#.detach()
         std = torch.exp(log_std)
 
         # Politica dada la observación (Representa el promedio de la distribución normal que muestrea acciones)
-        means=RN_actor(observation)
+        means=self._actor(observation)#.detach()
         
         # Distribución normal de parametros mean y std, esta se utiliza para muestrear acciones de modo de tal de explorar el espacio de acciones
         dist = torch.distributions.Normal(means, std)
@@ -163,20 +145,22 @@ class ActorCriticAgent:
         return action
 
 
-    def _compute_actor_loss_discrete(self, observation_batch, action_batch, advantage_batch):
+    def compute_actor_loss_discrete(self, observation_batch, action_batch, advantage_batch):
         # use negative logprobs * advantages
         logits=self._actor(observation_batch)
-
+        #print(logits)
         # Distribución de probabilidad categorica
         dist = torch.distributions.Categorical(logits=logits)
         log_probs=dist.log_prob(torch.tensor(action_batch)).squeeze(0)
+        #print(log_probs)
         advantage=torch.tensor(advantage_batch)
+        #print(advantage)
         loss=torch.mean(log_probs*advantage)#.item()
-
+        #print(loss)
         return loss
 
 
-    def _compute_actor_loss_continuous(self, observation_batch, action_batch, advantage_batch):
+    def compute_actor_loss_continuous(self, observation_batch, action_batch, advantage_batch):
         # use negative logprobs * advantages
         means=self._actor(observation_batch).squeeze(0).squeeze(1)
 
@@ -187,39 +171,42 @@ class ActorCriticAgent:
         dist = torch.distributions.Normal(means, std)
         log_probs=dist.log_prob(torch.tensor((action_batch))).squeeze(0)
         advantage=torch.tensor(advantage_batch)
-        print(log_probs)
-        print(advantage)
+        #print(log_probs)
+        #print(advantage)
         loss=torch.mean(log_probs*advantage)#.item()
-
+        #print(loss)
         return loss
 
 
-    def _compute_critic_loss(self, observation_batch, reward_batch, next_observation_batch, done_batch):
+    def compute_critic_loss(self, observation_batch, reward_batch, next_observation_batch, done_batch):
         # minimize mean((r + gamma * V(s_t1) - V(s_t))^2)
-        value = self._critic(observation_batch).squeeze(0)#.squeeze(0)
-        done_batch=torch.tensor(done_batch).view(-1, 1)
-        reward_batch=torch.tensor(reward_batch).view(-1, 1).float()
-        target = reward_batch + ~done_batch * self._gamma * self._critic(next_observation_batch)[0].detach()
-        #print(value.shape)
-        #print(target.shape)
-        loss = F.mse_loss(value, target)
+        value = self._critic(observation_batch).squeeze().float()#.squeeze(0)
+        done_batch=torch.tensor(done_batch)#.view(-1, 1)
+        reward_batch=torch.tensor(reward_batch)#.view(-1, 1).float()
+        target = reward_batch + ~done_batch * self._gamma * self._critic(next_observation_batch).detach().squeeze()
+        target=target.float()
         
+        loss = F.mse_loss(value, target)
+        #print(loss)
         return loss
 
 
     def update_actor(self, observation_batch, action_batch, reward_batch, next_observation_batch, done_batch):
         # compute the advantages using the critic and update the actor parameters
-        value = self._critic(observation_batch).squeeze(0)
-        done_batch=torch.tensor(done_batch).view(-1, 1)
-        reward_batch=torch.tensor(reward_batch).view(-1, 1).float()
-        target = reward_batch + ~done_batch * self._gamma * self._critic(next_observation_batch)[0].detach()
-        #print(target)
-        #print(value)
+        value = self._critic(observation_batch).detach().squeeze()
+        #print(value.shape)
+        done_batch=torch.tensor(done_batch)#.view(-1, 1)
+        #print(done_batch.shape)
+        reward_batch=torch.tensor(reward_batch)#.view(-1, 1).float()
+        #print(reward_batch.shape)
+        target = reward_batch + ~done_batch * self._gamma * self._critic(next_observation_batch).detach().squeeze()#[0]
+        #print(target.shape)
+        #print(value.shape)
         advantage = (target - value).detach()
 
         # use self._compute_actor_loss
         loss=-self._compute_actor_loss(observation_batch, action_batch,advantage)
-        
+        #print(loss)
         # Backpropagation
         self._actor.zero_grad()
         loss.backward()
@@ -229,9 +216,9 @@ class ActorCriticAgent:
         
     def update_critic(self, observation_batch, reward_batch, next_observation_batch, done_batch):
         # update the critic
-        # use self._compute_critic_loss
-        loss=self. _compute_critic_loss(observation_batch, reward_batch, next_observation_batch, done_batch)
-        
+        # use self.compute_critic_loss
+        loss=self. compute_critic_loss(observation_batch, reward_batch, next_observation_batch, done_batch).float()
+        #print(loss)
         # Backpropagation
         self._critic.zero_grad()
         loss.backward()
