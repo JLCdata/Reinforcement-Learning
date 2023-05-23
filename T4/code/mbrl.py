@@ -5,22 +5,45 @@ import numpy as np
 
 from buffer import Buffer
 
-class Model(nn.Module):
+from torch.optim import AdamW
 
+import matplotlib.pyplot as plt
+
+import torch.nn.functional as F
+
+class Model(nn.Module):
+    
     def __init__(self, dim_states, dim_actions, continuous_control):
         super(Model, self).__init__()
-        """if continuous_control:
-            self._fc1 = None
-        else:
-            self._fc1 = None
-        """
-
-        # MLP, fully connected layers, ReLU activations, linear ouput activation
-        # dim_input -> 64 -> 64 -> dim_actions
-
-
+        
+        self._fc1 = nn.Sequential(
+        nn.Linear(dim_states+1, 64),
+        nn.ReLU(),
+        nn.Linear(64, 64),
+        nn.ReLU(),
+        nn.Linear(64, dim_states)
+    )
+       
     def forward(self, state, action):
-        return None
+
+        if len(state.shape)>1:
+
+            concat_o_a=np.concatenate((state,action.reshape(-1,1)),axis=1)
+            input=torch.from_numpy(concat_o_a).float()
+            #print(input)
+            output=self._fc1(input)
+        
+        else:
+            
+            action=np.array(action if continuous_control else [action])
+            #print(action)
+            #print(state)
+            concat_o_a=np.concatenate((state,action))
+            input=torch.from_numpy(concat_o_a).float()
+            #print(input)
+            output=self._fc1(input)
+
+        return output
 
 
 class RSPlanner:
@@ -82,7 +105,7 @@ class MBRLAgent:
         self._model = Model(self._dim_states, self._dim_actions, self._continuous_control)
 
         # Adam optimizer
-        self._model_optimizer = None
+        self._model_optimizer = AdamW(self._model.parameters(), lr=self._model_lr)
 
         self._buffer = Buffer(self._dim_states, self._dim_actions, buffer_size, batch_size)
         
@@ -93,10 +116,14 @@ class MBRLAgent:
     def select_action(self, observation, random=False):
 
         if random:
-            # Return random action
+
             if self._continuous_control:
-                return None
-            return None
+    
+                return np.array([np.random.random()]).astype("float32")
+
+            else:
+                return np.random.randint(2)
+            
 
         # Generate plan
         plan = None
@@ -109,13 +136,38 @@ class MBRLAgent:
 
 
     def store_transition(self, s_t, a_t, s_t1):
-        pass
+        self._buffer.store_transition(s_t,a_t,s_t1)
+        #pass
 
 
     def update_model(self):
-        batches = self._buffer.get_batches()
-        for batch in batches:
+        
+        s_t,a_t,s_t1=self._buffer.get_batches()
+
+        list_loss=[]
+        for x,y,z in zip(s_t,a_t,s_t1):
+            
             # Use the batches to train the model
             # loss: avg((s_t1 - model(s_t, a_t))^2)
-            pass
+            #loss=((self._model(x,y)-torch.tensor(z))**2).mean()
+
+            loss=F.mse_loss(self._model(x,y).float(), torch.tensor(z).float())
+            self._model.zero_grad()
+            loss.backward()
+            self._model_optimizer.step()
+            list_loss.append(loss.item())
+        
+        epoch=len(list_loss)
+        epocas=[i for i in range(epoch)]  # Lista con épocas hasta el ultimo Check Point para poder graficar
+
+        plt.plot(epocas,list_loss) # Plot entrenamiento
+
+        plt.legend(["Loss Entrenamiento"], loc ="upper right")
+        plt.title('Curvas Loss')
+        plt.xlabel('# Epoch')
+        plt.ylabel('Loss')
+        plt.show()
+
+
+            
         
