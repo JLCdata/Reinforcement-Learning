@@ -46,7 +46,7 @@ def train_agent(env, eval_env, agent, nb_training_steps, nb_data_collection_step
         ob_t1, reward, done, _ = env.step(action)
 
         agent.store_transition(ob_t, action, ob_t1)
-
+        #print(agent._buffer_idx)
         ob_t = ob_t1
 
         if render:
@@ -117,10 +117,10 @@ def update_performance_metrics(agent, eval_env, training_step, axes, tr_steps_ve
     avg_reward_vec.append(avg_reward)
     std_reward_vec.append(std_reward)
 
-    plot_performance_metrics(axes, 
-                             tr_steps_vec, 
-                             avg_reward_vec, 
-                             std_reward_vec)
+    #plot_performance_metrics(axes, 
+    #                         tr_steps_vec, 
+    #                         avg_reward_vec, 
+    #                         std_reward_vec)
 
 
 def save_metrics(agent, tr_steps_vec, avg_reward_vec, std_reward_vec):
@@ -149,7 +149,7 @@ def test_agent(env, agent, nb_episodes=30, render=True):
                 env.render()
                 time.sleep(1. / 60)
                 
-            action = agent.select_action(ob_t)
+            action = agent.select_action(ob_t,random=True)
             
             ob_t1, reward, done, _ = env.step(action)
 
@@ -184,8 +184,8 @@ def plot_performance_metrics(axes, tr_steps_vec, avg_reward_vec, std_reward_vec)
 
 if __name__ == '__main__':
     
-    #env_name = 'CartPole-v0'
-    env_name = 'Pendulum-v0'
+    #env_name = 'CartPole-v1'
+    env_name = 'Pendulum-v1'
     env = gym.make(env_name)
     eval_env = gym.make(env_name)
 
