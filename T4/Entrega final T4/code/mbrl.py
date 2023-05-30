@@ -72,7 +72,7 @@ class RSPlanner:
 
         # Construct initial observation 
         o_t = np.repeat(observation,self._nb_trajectories).reshape(-1,self._dim_states)
-        
+        #print(o_t)
         rewards = np.zeros((self._nb_trajectories, ))
         
         for i in range(self._planning_horizon):
@@ -94,7 +94,11 @@ class RSPlanner:
         
         # Return the best sequence of actions
         index_best_actions=np.argmax(rewards)
-
+        #print(o_t1.shape)
+        #print(o_t.shape)
+        #print(a_t.shape)
+        #print(rewards.shape)
+        #print(random_actions[index_best_actions])
         return random_actions[index_best_actions]
 
 
@@ -171,4 +175,4 @@ class MBRLAgent:
         #plt.xlabel('# Epoch')
         #plt.ylabel('Loss')
         #plt.show()
-        #
+        
