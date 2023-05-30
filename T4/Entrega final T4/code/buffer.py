@@ -27,12 +27,12 @@ class Buffer:
         # Aumento de indice y reinicio de indice si superamos capacidad
         self._buffer_idx = (self._buffer_idx + 1) % self._buffer_size
         self._exps_stored += 1
-        print(self._exps_stored)
+        #print(self._exps_stored)
         #pass
 
     
     def get_batches(self):
-        print(self._exps_stored)
+        #print(self._exps_stored)
         assert self._exps_stored + 1 > self._sample_size, "Not enough samples has been stored to start sampling"
 
         # Get all the data contained in the buffer as batches 
