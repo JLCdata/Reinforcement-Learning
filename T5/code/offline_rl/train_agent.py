@@ -121,7 +121,7 @@ if __name__ == '__main__':
     if env_name == 'CartPole-v0':
         from experts.pid_controller import PIDController
         # Complete using P1
-        expert_agent = PIDController(0.0, 0, 0.0, 0.02)
+        expert_agent = PIDController(5, 5, 5, 0.02)
     
     elif env_name == 'MountainCar-v0':
         from experts.mcar_policy import MCarExpertPolicy
