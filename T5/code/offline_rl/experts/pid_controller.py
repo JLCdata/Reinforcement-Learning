@@ -78,7 +78,6 @@ def test_agent(env, agent, nb_episodes=30, render=True):
 if __name__ == '__main__':
 
     # Exploración de parámetros:
-
     # do not change dt = 0.02
     env = gym.make('CartPole-v0')
     print(0.1, 0.3, 0.7)
