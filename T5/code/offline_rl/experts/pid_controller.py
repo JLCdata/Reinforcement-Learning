@@ -3,7 +3,6 @@ import time
 import numpy as np
 
 class PIDController:
-
     def __init__(self, kp, ki, kd, dt=0.02):
         self._kp = kp
         self._ki = ki
@@ -12,6 +11,8 @@ class PIDController:
         
         # P1-1
         # Define aux variables (if any)
+        self.last_error = 0
+        self.integral = 0
         
     def select_action(self, observation):
         # P1-1
@@ -20,10 +21,16 @@ class PIDController:
 
         # PID control
         # Code the PID control law
-        ctrl = 0
+        proportional = self._kp * error
+        self.integral += self._ki * error * self._dt
+        derivative = self._kd * (error - self.last_error) / self._dt
+        ctrl = proportional + self.integral + derivative
+
+        # Update error
+        self.last_error = error
+
         return 0 if ctrl < 0 else 1
-
-
+    
 def test_agent(env, agent, nb_episodes=30, render=True):
 
     ep_rewards = []
@@ -70,7 +77,40 @@ def test_agent(env, agent, nb_episodes=30, render=True):
 # P1-2, P1-3
 if __name__ == '__main__':
 
+    # Exploración de parámetros:
+
     # do not change dt = 0.02
     env = gym.make('CartPole-v0')
-    pid_agent = PIDController(0, 0, 0, 0.02)
+    print(0.1, 0.3, 0.7)
+    pid_agent = PIDController(0.1, 0.3, 0.7, 0.02)
+    test_agent(env, pid_agent)
+
+    print(0.5, 0.3, 0.1)
+    env = gym.make('CartPole-v0')
+    pid_agent = PIDController(0.5, 0.3, 0.1, 0.02)
+    test_agent(env, pid_agent)
+
+    print(1, 1.5, 3)
+    env = gym.make('CartPole-v0')
+    pid_agent = PIDController(1, 1.5, 3, 0.02)
+    test_agent(env, pid_agent)
+
+    print(3, 2, 1.5)
+    env = gym.make('CartPole-v0')
+    pid_agent = PIDController(3, 2, 1.5, 0.02)
+    test_agent(env, pid_agent)
+
+    print(2, 3, 4)
+    env = gym.make('CartPole-v0')
+    pid_agent = PIDController(2, 3, 4, 0.02)
+    test_agent(env, pid_agent)
+
+    print(4, 2, 3)
+    env = gym.make('CartPole-v0')
+    pid_agent = PIDController(4, 2, 3, 0.02)
+    test_agent(env, pid_agent)
+
+    print(5, 5, 5)
+    env = gym.make('CartPole-v0')
+    pid_agent = PIDController(5, 5, 5, 0.02)
     test_agent(env, pid_agent)

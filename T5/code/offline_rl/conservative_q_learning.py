@@ -54,7 +54,7 @@ class ConservativeDeepQNetworkAgent:
 
         return action
 
-
+    '''
     def update(self, experiences_batch):
 
         s_t_batch, a_t_batch, r_t_batch, s_t1_batch, done_t_batch = experiences_batch
@@ -74,4 +74,33 @@ class ConservativeDeepQNetworkAgent:
 
         loss.backward()
 
+        self._optimizer.step()
+    '''
+    
+    def update(self, experiences_batch):
+    
+        s_t_batch, a_t_batch, r_t_batch, s_t1_batch, done_t_batch = experiences_batch
+
+        # Q-values for current state-action pairs
+        q_values = self._deep_qnetwork(torch.from_numpy(s_t_batch)).gather(1, torch.from_numpy(a_t_batch))
+
+        with torch.no_grad():
+            # Q-values for next state-action pairs (from the target network)
+            next_q_values = self._target_deepq_network(torch.from_numpy(s_t1_batch))
+            max_next_q_values = torch.max(next_q_values, dim=1, keepdim=True)[0]
+            target_q_values = torch.from_numpy(r_t_batch) + (1 - torch.from_numpy(done_t_batch)) * self._gamma * max_next_q_values
+
+        self._optimizer.zero_grad()
+        # DQN loss
+        dqn_loss = nn.MSELoss()(q_values, target_q_values)
+
+        with torch.no_grad():
+            # CQL1 loss
+            expert_q_values = self._target_deepq_network(torch.from_numpy(s_t_batch))
+            c_target = torch.logsumexp(expert_q_values, dim=1) - expert_q_values.gather(1, torch.from_numpy(a_t_batch)).squeeze(1)
+            c_target = c_target.mean()
+
+        loss = dqn_loss + self._alpha * c_target
+
+        loss.backward()
         self._optimizer.step()
