@@ -54,29 +54,6 @@ class ConservativeDeepQNetworkAgent:
 
         return action
 
-    '''
-    def update(self, experiences_batch):
-
-        s_t_batch, a_t_batch, r_t_batch, s_t1_batch, done_t_batch = experiences_batch
-
-        # P2 - 1
-        
-        with torch.no_grad():
-            target = None
-
-
-        self._optimizer.zero_grad()
-        # CQL1 loss (check the paper)
-        # hint: use torch.logsumexp
-        c_target = None
-
-        loss = None # DQN loss + self._alpha * c_target
-
-        loss.backward()
-
-        self._optimizer.step()
-    '''
-    
     def update(self, experiences_batch):
     
         s_t_batch, a_t_batch, r_t_batch, s_t1_batch, done_t_batch = experiences_batch
@@ -103,28 +80,4 @@ class ConservativeDeepQNetworkAgent:
         loss.backward()
         self._optimizer.step()
 
-    '''
-    def update(self):
-        s_t,a_t,r_t,s_t1,done=self.replay_buffer.sample_transitions()
-
-        s_t=torch.from_numpy(s_t).unsqueeze(dim=0).float()
-        s_t1=torch.from_numpy(s_t1).unsqueeze(dim=0).float()
-        r_t = torch.tensor(r_t).view(-1, 1).float()
-        done = torch.tensor(done).view(-1, 1)
-        a_t=torch.tensor(a_t).view(-1, 1).type(torch.int64)
-
-        # Predict Q-value de estado actual
-        qsa_predict=self._deep_qnetwork(s_t)
-        qsa_actions=torch.gather(input=qsa_predict[0], dim=1,index = a_t)
-        
-        # Calculo de Q-value target (Q-value estado siguiente)
-        next_qsa_predict=self._target_deepq_network(s_t1)
-        max_next_qsa_predict=torch.max(next_qsa_predict, dim=-1, keepdim=True)[0][0]
-
-        target_qsa=r_t+~done*self._gamma*max_next_qsa_predict
-
-        loss = F.mse_loss(qsa_actions, target_qsa)+alpha*C
-        self._deep_qnetwork.zero_grad()
-        loss.backward()
-            self._optimizer.step()
-    '''
+ 
