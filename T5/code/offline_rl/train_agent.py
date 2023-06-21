@@ -25,11 +25,11 @@ def perform_rollouts(env, agent, nb_episodes, replay_buffer=None, render=False):
         nb_steps = 0
 
         while not done:
-
+            '''
             if render and episode == 0:
                 env.render()
                 time.sleep(1. / 60)
-                
+            '''
             action = agent.select_action(ob_t)
             
             ob_t1, reward, done, _ = env.step(action)
@@ -66,7 +66,7 @@ def perform_rollouts(env, agent, nb_episodes, replay_buffer=None, render=False):
     return replay_buffer, avg_reward, std_reward, success_rate
 
 
-def train_agent(env, agent, expert_agent, replay_buffer, rollout_episodes, training_iters):
+def train_agent(env, agent, expert_agent, replay_buffer, rollout_episodes, training_iters,id_str="exp"):
 
     tr_iters_vec, avg_rew_vec, std_rew_vec, sr_vec = [], [], [], []
     _, (axes) = plt.subplots(1, 2, figsize=(12,4))
@@ -86,9 +86,9 @@ def train_agent(env, agent, expert_agent, replay_buffer, rollout_episodes, train
             avg_rew_vec.append(avg_reward)
             std_rew_vec.append(std_reward)
             sr_vec.append(success_rate)
-            plot_training_metrics(axes, tr_iters_vec, avg_rew_vec, std_rew_vec, sr_vec)
+            #plot_training_metrics(axes, tr_iters_vec, avg_rew_vec, std_rew_vec, sr_vec)
     
-    save_metrics(tr_iters_vec, avg_rew_vec, std_rew_vec, sr_vec)
+    save_metrics(tr_iters_vec, avg_rew_vec, std_rew_vec, sr_vec,id_str)
 
 
 def plot_training_metrics(axes, tr_iters_vec, avg_rew_vec, std_rew_vec, sr_vec):
@@ -105,9 +105,9 @@ def plot_training_metrics(axes, tr_iters_vec, avg_rew_vec, std_rew_vec, sr_vec):
     plt.pause(0.05)
 
 
-def save_metrics(tr_iters_vec, avg_reward_vec, std_reward_vec, sr_vec):
-    with open('metrics'+datetime.datetime.now().strftime('%H:%M:%S')+'.csv', 'w') as csv_file:
-        csv_writer = csv.writer(csv_file, delimiter='\t')
+def save_metrics(tr_iters_vec, avg_reward_vec, std_reward_vec, sr_vec,id_str):
+    with open(id_str+'.csv', 'w') as csv_file:
+        csv_writer = csv.writer(csv_file, delimiter=',')
         csv_writer.writerow(['steps', 'avg_reward', 'std_reward'])
         for i in range(len(tr_iters_vec)):
             csv_writer.writerow([tr_iters_vec[i], avg_reward_vec[i], std_reward_vec[i], sr_vec[i]])
@@ -115,13 +115,14 @@ def save_metrics(tr_iters_vec, avg_reward_vec, std_reward_vec, sr_vec):
         
 if __name__ == '__main__':
 
-    env_name = 'CartPole-v0'
+    '''
+    env_name = 'MountainCar-v0'
     env = gym.make(env_name)
 
     if env_name == 'CartPole-v0':
         from experts.pid_controller import PIDController
         # Complete using P1
-        expert_agent = PIDController(0.0, 0, 0.0, 0.02)
+        expert_agent = PIDController(5, 5, 5, 0.02)
     
     elif env_name == 'MountainCar-v0':
         from experts.mcar_policy import MCarExpertPolicy
@@ -137,4 +138,131 @@ if __name__ == '__main__':
     replay_buffer = ReplayBuffer(dim_states=nb_states, dim_actions=nb_actions, max_size=100000, sample_size=128)
 
     train_agent(env=env, agent=agent, expert_agent=expert_agent, 
-                replay_buffer=replay_buffer, rollout_episodes=200, training_iters=20000)
+                replay_buffer=replay_buffer, rollout_episodes=1000, training_iters=20000)
+    '''
+    '''
+    ################ Experimentos CartPole #############################
+    
+    exp_11={"name":"exp_11","nb_rollouts":10, "alpha":0}
+    exp_21={"name":"exp_21","nb_rollouts":100, "alpha":0}
+    exp_31={"name":"exp_31","nb_rollouts":1000, "alpha":0}
+      
+    exp_12={"name":"exp_12", "nb_rollouts":10, "alpha":5}
+    exp_22={"name":"exp_22","nb_rollouts":100, "alpha":5}
+    exp_32={"name":"exp_32", "nb_rollouts":1000, "alpha":5}
+
+    exp_13={"name":"exp_13","nb_rollouts":10, "alpha":10}
+    exp_23={"name":"exp_23","nb_rollouts":100, "alpha":10}
+    exp_33={"name":"exp_33","nb_rollouts":1000, "alpha":10}
+      
+    exp_14={"name":"exp_14", "nb_rollouts":10, "alpha":20}
+    exp_24={"name":"exp_24","nb_rollouts":100, "alpha":20}
+    exp_34={"name":"exp_34", "nb_rollouts":1000, "alpha":20}
+   
+    experimentos=[exp_11,exp_21,exp_31,
+                  exp_12,exp_22,exp_32,
+                  exp_13,exp_23,exp_33,
+                  exp_14,exp_24,exp_34,]
+    
+    # Iteramos sobre cada conjunto de experimentos
+    for exp in experimentos:
+
+        # Parametros según experimento
+        nb_rollouts=exp["nb_rollouts"]
+        alpha=exp["alpha"]
+        
+        # Cada experimento se ejecuta 3 veces
+        for num_exp in range(1,4):
+            
+            # Id identificador del experimento
+            id_str=exp["name"]+'_'+str(num_exp)+'_'+"CartPole"
+
+            env_name = 'CartPole-v0'
+
+            env = gym.make(env_name)
+
+            if env_name == 'CartPole-v0':
+                from experts.pid_controller import PIDController
+                # Complete using P1
+                expert_agent = PIDController(5, 5, 5, 0.02)
+            
+            elif env_name == 'MountainCar-v0':
+                from experts.mcar_policy import MCarExpertPolicy
+                expert_agent = MCarExpertPolicy()
+
+            else: 
+                raise NotImplementedError()
+
+            nb_states = env.observation_space.shape[0]
+            nb_actions = env.action_space.n
+            
+            agent = ConservativeDeepQNetworkAgent(dim_states=nb_states, dim_actions=nb_actions, lr=0.01, gamma=0.99, alpha=alpha)
+            replay_buffer = ReplayBuffer(dim_states=nb_states, dim_actions=nb_actions, max_size=100000, sample_size=128)
+
+            train_agent(env=env, agent=agent, expert_agent=expert_agent, 
+                        replay_buffer=replay_buffer, rollout_episodes=nb_rollouts, training_iters=20000,id_str=id_str)
+    '''        
+    
+    
+    ################ Experimentos MountainCar #############################
+    
+    exp_11={"name":"exp_11","nb_rollouts":10, "alpha":0}
+    exp_21={"name":"exp_21","nb_rollouts":100, "alpha":0}
+    exp_31={"name":"exp_31","nb_rollouts":1000, "alpha":0}
+      
+    exp_12={"name":"exp_12", "nb_rollouts":10, "alpha":5}
+    exp_22={"name":"exp_22","nb_rollouts":100, "alpha":5}
+    exp_32={"name":"exp_32", "nb_rollouts":1000, "alpha":5}
+
+    exp_13={"name":"exp_13","nb_rollouts":10, "alpha":10}
+    exp_23={"name":"exp_23","nb_rollouts":100, "alpha":10}
+    exp_33={"name":"exp_33","nb_rollouts":1000, "alpha":10}
+      
+    exp_14={"name":"exp_14", "nb_rollouts":10, "alpha":20}
+    exp_24={"name":"exp_24","nb_rollouts":100, "alpha":20}
+    exp_34={"name":"exp_34", "nb_rollouts":1000, "alpha":20}
+   
+    experimentos=[exp_11,exp_21,exp_31,
+                  exp_12,exp_22,exp_32,
+                  exp_13,exp_23,exp_33,
+                  exp_14,exp_24,exp_34,]
+    
+    # Iteramos sobre cada conjunto de experimentos
+    for exp in experimentos:
+
+        # Parametros según experimento
+        nb_rollouts=exp["nb_rollouts"]
+        alpha=exp["alpha"]
+        
+        # Cada experimento se ejecuta 3 veces
+        for num_exp in range(1,4):
+            
+            # Id identificador del experimento
+            id_str=exp["name"]+'_'+str(num_exp)+'_'+"MountainCar"
+
+            env_name = 'MountainCar-v0'
+
+            env = gym.make(env_name)
+
+            if env_name == 'CartPole-v0':
+                from experts.pid_controller import PIDController
+                # Complete using P1
+                expert_agent = PIDController(5, 5, 5, 0.02)
+            
+            elif env_name == 'MountainCar-v0':
+                from experts.mcar_policy import MCarExpertPolicy
+                expert_agent = MCarExpertPolicy()
+
+            else: 
+                raise NotImplementedError()
+
+            nb_states = env.observation_space.shape[0]
+            nb_actions = env.action_space.n
+            
+            agent = ConservativeDeepQNetworkAgent(dim_states=nb_states, dim_actions=nb_actions, lr=0.01, gamma=0.99, alpha=alpha)
+            replay_buffer = ReplayBuffer(dim_states=nb_states, dim_actions=nb_actions, max_size=100000, sample_size=128)
+
+            train_agent(env=env, agent=agent, expert_agent=expert_agent, 
+                        replay_buffer=replay_buffer, rollout_episodes=nb_rollouts, training_iters=20000,id_str=id_str)
+           
+    

@@ -54,24 +54,30 @@ class ConservativeDeepQNetworkAgent:
 
         return action
 
-
     def update(self, experiences_batch):
-
+    
         s_t_batch, a_t_batch, r_t_batch, s_t1_batch, done_t_batch = experiences_batch
 
-        # P2 - 1
-        
-        with torch.no_grad():
-            target = None
+        # Q-values for current state-action pairs
+        q_values = self._deep_qnetwork(torch.from_numpy(s_t_batch)).gather(1, torch.tensor(a_t_batch, dtype=torch.int64).reshape(-1,1))
 
+        with torch.no_grad():
+            # Q-values for next state-action pairs (from the target network)
+            next_q_values = self._target_deepq_network(torch.from_numpy(s_t1_batch))
+            max_next_q_values = torch.max(next_q_values, dim=1, keepdim=True)[0]
+
+        target_q_values = torch.from_numpy(r_t_batch) + (1 - torch.from_numpy(done_t_batch)) * self._gamma * max_next_q_values
+
+        # DQN loss
+        dqn_loss = nn.MSELoss()(q_values, target_q_values)
+
+        c_target = torch.logsumexp(self._deep_qnetwork(torch.from_numpy(s_t_batch)), dim=1).mean()-q_values.mean()
+        c_target = c_target.mean()
+
+        loss = dqn_loss + self._alpha * c_target
 
         self._optimizer.zero_grad()
-        # CQL1 loss (check the paper)
-        # hint: use torch.logsumexp
-        c_target = None
-
-        loss = None # DQN loss + self._alpha * c_target
-
         loss.backward()
-
         self._optimizer.step()
+
+ 

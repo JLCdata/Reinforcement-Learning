@@ -1,0 +1,1 @@
+Para la entrega de la tarea 5, se encuentran las códigos consolidadas dentro de los archivos .py. Para generar los resultados ejecutar train_agent.py. La lectura de archivos y generación de gráficos se encuentra del archivo T5.ipynb.
